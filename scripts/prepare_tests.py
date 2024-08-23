@@ -27,32 +27,33 @@ import subprocess
 import os
 
 
-def sparse_checkout(repo_url, destination, paths):
-    original_cwd = os.getcwd()
-    try:
-        subprocess.run(
-            ["git", "clone", "--no-checkout", repo_url, destination], check=True
-        )
-        os.chdir(destination)
-        subprocess.run(["git", "sparse-checkout", "init", "--cone"], check=True)
-        subprocess.run(["git", "sparse-checkout", "set"] + paths, check=True)
-        subprocess.run(["git", "pull", "origin", "main"], check=True)
-        print("Sparse checkout 完成!")
-    except subprocess.CalledProcessError as e:
-        print(f"命令执行失败: {e}")
-    finally:
-        os.chdir(original_cwd)
+import subprocess
+import os
 
+def sparse_checkout(repo_url, destination, paths, branch='main'):
+    try:
+        subprocess.run(['git', 'clone', '--no-checkout', '-b', branch, repo_url, destination], check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Git clone failed: {e}")
+
+    git_dir = os.path.join(destination, '.git')
+    config_dir = os.path.join(destination, '.git', 'config')
+
+    subprocess.run(['git', '--git-dir', git_dir, '--work-tree', destination, 'sparse-checkout', 'init', '--cone'], check=True)
+    subprocess.run(['git', '--git-dir', git_dir, '--work-tree', destination, 'sparse-checkout', 'set'] + paths, check=True)
+    subprocess.run(['git', '--git-dir', git_dir, '--work-tree', destination, 'checkout'], check=True)
+    
+    print("Sparse checkout 完成!")
 
 device_torch_path = "./device_torch/"
 origin_torch_path = "./origin_torch/"
 
 if not os.path.exists(origin_torch_path):
-    sparse_checkout("https://github.com/pytorch/pytorch.git", origin_torch_path, ["test"])
+    sparse_checkout("https://github.com/pytorch/pytorch.git", origin_torch_path, ["test"], "v2.1.0")
 
 if device_code == "npu":
     if not os.path.exists(device_torch_path):
-        sparse_checkout("https://gitee.com/ascend/pytorch.git", device_torch_path, ["test"])
+        sparse_checkout("https://gitee.com/ascend/pytorch.git", device_torch_path, ["test"], "v2.1.0")
 
 
 device_test_path = device_torch_path + "test"
@@ -240,4 +241,5 @@ shutil.copytree(
 # 3. 对to_process_tests下的文件进行符号替换处理
 os.chdir("../to_process_tests")
 for item in os.listdir(os.getcwd()):
-    modify_src_code(item, device_code)
+    if item.startswith("test_") and item.endswith(".py"):
+        modify_src_code(item, device_code)
