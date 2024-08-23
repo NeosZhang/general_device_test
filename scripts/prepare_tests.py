@@ -21,6 +21,8 @@ parser.add_argument("device_code", type=str, help="the supported device_code are
 args = parser.parse_args()
 device_code = args.device_code
 
+assert device_code in ['cuda', 'npu', 'camb', 'muxi'], "the supported device_code are 'cuda', 'npu', 'camb', 'muxi'."
+
 device_torch_path = "./device_torch/"
 origin_torch_path = "./origin_torch/"
 

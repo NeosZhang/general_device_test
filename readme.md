@@ -5,7 +5,7 @@
 # 2. 适配逻辑
 ```
 cd scripts
-python prepare_tests.py
+python prepare_tests.py npu
 ```
 1. 克隆PyTorch官方仓库(以下称为origin_torch)和设备对应版本的torch(以下称为device_torch)
 2. 将device_torch中的测例脚本拷贝到modified_tests路径下
