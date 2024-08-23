@@ -5,31 +5,54 @@ import subprocess
 
 from process_test_utils import modify_src_code
 
-
-def sparse_checkout(repo_url, destination, paths):
-    subprocess.run(['git', 'clone', '--no-checkout', repo_url, destination], check=True)
-    os.chdir(destination)
-    subprocess.run(['git', 'sparse-checkout', 'init', '--cone'], check=True)
-    subprocess.run(['git', 'sparse-checkout', 'set'] + paths, check=True)
-    subprocess.run(['git', 'checkout'], check=True)
-    print("Sparse checkout 完成!")
-
-
 # 通过传参设置device_code
 parser = argparse.ArgumentParser()
-parser.add_argument("device_code", type=str, help="the supported device_code are 'cuda', 'npu', 'camb', 'muxi'.")
+parser.add_argument(
+    "device_code",
+    type=str,
+    help="the supported device_code are 'cuda', 'npu', 'camb', 'muxi'.",
+)
 args = parser.parse_args()
 device_code = args.device_code
 
-assert device_code in ['cuda', 'npu', 'camb', 'muxi'], "the supported device_code are 'cuda', 'npu', 'camb', 'muxi'."
+assert device_code in [
+    "cuda",
+    "npu",
+    "camb",
+    "muxi",
+], "the supported device_code are 'cuda', 'npu', 'camb', 'muxi'."
+
+
+import subprocess
+import os
+
+
+def sparse_checkout(repo_url, destination, paths):
+    original_cwd = os.getcwd()
+    try:
+        subprocess.run(
+            ["git", "clone", "--no-checkout", repo_url, destination], check=True
+        )
+        os.chdir(destination)
+        subprocess.run(["git", "sparse-checkout", "init", "--cone"], check=True)
+        subprocess.run(["git", "sparse-checkout", "set"] + paths, check=True)
+        subprocess.run(["git", "pull", "origin", "main"], check=True)
+        print("Sparse checkout 完成!")
+    except subprocess.CalledProcessError as e:
+        print(f"命令执行失败: {e}")
+    finally:
+        os.chdir(original_cwd)
+
 
 device_torch_path = "./device_torch/"
 origin_torch_path = "./origin_torch/"
 
-sparse_checkout("https://github.com/pytorch/pytorch.git", origin_torch_path, ["test"])
+if not os.path.exists(origin_torch_path):
+    sparse_checkout("https://github.com/pytorch/pytorch.git", origin_torch_path, ["test"])
 
 if device_code == "npu":
-    sparse_checkout("https://gitee.com/ascend/pytorch.git", device_torch_path, ["test"])
+    if not os.path.exists(device_torch_path):
+        sparse_checkout("https://gitee.com/ascend/pytorch.git", device_torch_path, ["test"])
 
 
 device_test_path = device_torch_path + "test"
@@ -188,18 +211,31 @@ unnecessary_tests = [
     "test_view_ops.py",
     "test_vulkan.py",
     "test_weak.py",
-    "test_xnnpack_integration.py" 
+    "test_xnnpack_integration.py",
 ]
 
 if device_code == "npu":
-# 1. 从device_test_path拷贝测试数据到当前目录
+    # 1. 从device_test_path拷贝测试数据到当前目录
     shutil.copytree(device_test_path, "../modified_tests/", dirs_exist_ok=True)
+
 
 # 2. 从torch_test_path拷贝测试数据到当前目录，如果对应的test在当前目录已存在或在unnecessary_tests中，则跳过
 def ignore_tests(dir, contents):
-    ignore_list =  [name for name in contents if (name in unnecessary_tests or name in os.listdir(device_test_path) or ("." in name and "test_" not in name))]
+    ignore_list = [
+        name
+        for name in contents
+        if (
+            name in unnecessary_tests
+            or name in os.listdir(device_test_path)
+            or ("." in name and "test_" not in name)
+        )
+    ]
     return ignore_list
-shutil.copytree(torch_test_path, "../to_process_tests/", ignore=ignore_tests, dirs_exist_ok=True)
+
+
+shutil.copytree(
+    torch_test_path, "../to_process_tests/", ignore=ignore_tests, dirs_exist_ok=True
+)
 
 # 3. 对to_process_tests下的文件进行符号替换处理
 os.chdir("../to_process_tests")

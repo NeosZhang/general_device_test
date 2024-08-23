@@ -2,15 +2,16 @@ import os
 import re
 import re
 
+
 def split_script(input_file):
     # 用于匹配 import 和 from ... import 语句（包括多行）
-    import_pattern = re.compile(r'^\s*(import\s+\w+|from\s+\w+(\.\w+)*\s+import\s+)')
-    continuation_pattern = re.compile(r'^\s*[\(\,]')
+    import_pattern = re.compile(r"^\s*(import\s+\w+|from\s+\w+(\.\w+)*\s+import\s+)")
+    continuation_pattern = re.compile(r"^\s*[\(\,]")
 
     # 读取原始脚本
-    with open(input_file, 'r') as f:
+    with open(input_file, "r") as f:
         lines = f.readlines()
-        
+
     search_import_lines = []
     for line in lines:
         if "=" in line:
@@ -29,17 +30,17 @@ def split_script(input_file):
         # 检查是否是多行 import 语句的继续部分
         elif is_import or (continuation_pattern.match(search_import_lines[i])):
             # 检查是否结束了 import 语句
-            if ')' in search_import_lines[i]:
+            if ")" in search_import_lines[i]:
                 is_import = False
                 split_line = i
         else:
             is_import = False  # 结束 import 语句标记
-            
 
     # 将结果返回为字符串
-    imports_text = ''.join(lines[:split_line+1])
-    functions_text = ''.join(lines[split_line+1:])
+    imports_text = "".join(lines[: split_line + 1])
+    functions_text = "".join(lines[split_line + 1 :])
     return imports_text, functions_text
+
 
 def device_patch_for_test(device_code: str):
     import_torch = ""
@@ -53,10 +54,10 @@ def device_patch_for_test(device_code: str):
         "onlyCUDA": "onlyCUDA",
         "RUN_CUDA": "RUN_CUDA",
         "dtypesIfCUDA": "dtypesIfCUDA",
-        ".cuda(":".cuda(",
+        ".cuda(": ".cuda(",
         '"cuda"': '"cuda"',
         "'cuda'": "'cuda'",
-        "cuda:":"cuda:"
+        "cuda:": "cuda:",
     }
     if device_code == "cuda":
         pass
@@ -89,27 +90,30 @@ RUN_PRIVATEUSE1_HALF = RUN_PRIVATEUSE1\n"
 
     return import_torch, test_code_map
 
+
 def replace_in_text(text, mapping):
     # 将映射关系字典的键转换为正则表达式可以接受的格式，确保能正确处理特殊字符
     pattern = re.compile("|".join(re.escape(key) for key in mapping.keys()))
-    
+
     # 使用正则表达式替换文本中的键
     return pattern.sub(lambda x: mapping[x.group()], text)
+
 
 def modify_src_code(src: str, device_code: str):
     code_patch = device_patch_for_test(device_code)
     imports_text, functions_text = split_script(src)
-    
+
     imports_text = code_patch[0] + imports_text
     functions_text = replace_in_text(functions_text, code_patch[1])
 
     with open(src, "w", encoding="utf-8") as file:
         file.write(imports_text + functions_text)
 
+
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", type=str, help="original pytorch test file")
     args = parser.parse_args()
     modify_src_code(args.filename, "npu")
-
