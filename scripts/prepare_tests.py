@@ -22,14 +22,6 @@ assert device_code in [
     "muxi",
 ], "the supported device_code are 'cuda', 'npu', 'camb', 'muxi'."
 
-
-import subprocess
-import os
-
-
-import subprocess
-import os
-
 def sparse_checkout(repo_url, destination, paths, branch='main'):
     try:
         subprocess.run(['git', 'clone', '--no-checkout', '-b', branch, repo_url, destination], check=True)
@@ -220,7 +212,7 @@ if device_code == "npu":
     shutil.copytree(device_test_path, "../modified_tests/", dirs_exist_ok=True)
 
 
-# 2. 从torch_test_path拷贝测试数据到当前目录，如果对应的test在当前目录已存在或在unnecessary_tests中，则跳过
+# 2. 从torch_test_path拷贝测试脚本，如果对应的脚本在device_test_path已存在或在unnecessary_tests列表中，则跳过
 def ignore_tests(dir, contents):
     ignore_list = [
         name
