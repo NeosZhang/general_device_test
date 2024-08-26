@@ -85,8 +85,10 @@ RUN_PRIVATEUSE1_HALF = RUN_PRIVATEUSE1\n"
         test_code_map['"cuda"'] = '"npu"'
         test_code_map["'cuda'"] = "'npu'"
         test_code_map["cuda:"] = "npu:"
+    elif device_code == "muxi":
+        pass
     else:
-        raise ValueError("invald device code! The legal device code are: cuda, npu.")
+        raise ValueError("invald device code! The legal device code are: cuda, npu, muxi.")
 
     return import_torch, test_code_map
 
