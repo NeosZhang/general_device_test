@@ -22,30 +22,89 @@ assert device_code in [
     "muxi",
 ], "the supported device_code are 'cuda', 'npu', 'camb', 'muxi'."
 
-def sparse_checkout(repo_url, destination, paths, branch='main'):
+
+def sparse_checkout(repo_url, destination, paths, branch="main", depth=1):
+    destination = os.path.abspath(
+        destination
+    )  # Ensure the destination is an absolute path
+
     try:
-        subprocess.run(['git', 'clone', '--no-checkout', '-b', branch, repo_url, destination], check=True)
+        # Perform a shallow clone with the specified depth and branch
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "--no-checkout",
+                "--depth",
+                str(depth),
+                "--single-branch",
+                "-b",
+                branch,
+                repo_url,
+                destination,
+            ],
+            check=True,
+        )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Git clone failed: {e}")
 
-    git_dir = os.path.join(destination, '.git')
-    config_dir = os.path.join(destination, '.git', 'config')
+    git_dir = os.path.join(destination, ".git")
 
-    subprocess.run(['git', '--git-dir', git_dir, '--work-tree', destination, 'sparse-checkout', 'init', '--cone'], check=True)
-    subprocess.run(['git', '--git-dir', git_dir, '--work-tree', destination, 'sparse-checkout', 'set'] + paths, check=True)
-    subprocess.run(['git', '--git-dir', git_dir, '--work-tree', destination, 'checkout'], check=True)
-    
+    try:
+        # Initialize sparse checkout and set the specified paths
+        subprocess.run(
+            [
+                "git",
+                "--git-dir",
+                git_dir,
+                "--work-tree",
+                destination,
+                "sparse-checkout",
+                "init",
+                "--cone",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "--git-dir",
+                git_dir,
+                "--work-tree",
+                destination,
+                "sparse-checkout",
+                "set",
+            ]
+            + paths,
+            check=True,
+        )
+        # Checkout the files in the sparse checkout
+        subprocess.run(
+            ["git", "--git-dir", git_dir, "--work-tree", destination, "checkout"],
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Sparse checkout failed: {e}")
+
     print("Sparse checkout 完成!")
+
 
 device_torch_path = "./device_torch/"
 origin_torch_path = "./origin_torch/"
 
 if not os.path.exists(origin_torch_path):
-    sparse_checkout("https://github.com/pytorch/pytorch.git", origin_torch_path, ["test"], "v2.1.0")
+    sparse_checkout(
+        "https://github.com/pytorch/pytorch.git", origin_torch_path, ["test"], "v2.1.0"
+    )
 
 if device_code == "npu":
     if not os.path.exists(device_torch_path):
-        sparse_checkout("https://gitee.com/ascend/pytorch.git", device_torch_path, ["test"], "v2.1.0")
+        sparse_checkout(
+            "https://gitee.com/ascend/pytorch.git",
+            device_torch_path,
+            ["test"],
+            "v2.1.0",
+        )
 
 
 device_test_path = device_torch_path + "test"
@@ -229,10 +288,7 @@ def ignore_tests(dir, contents):
         ignore_list = [
             name
             for name in contents
-            if (
-                name in unnecessary_tests
-                or ("." in name and "test_" not in name)
-            )
+            if (name in unnecessary_tests or ("." in name and "test_" not in name))
         ]
     return ignore_list
 
