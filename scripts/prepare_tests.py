@@ -214,15 +214,26 @@ if device_code == "npu":
 
 # 2. 从torch_test_path拷贝测试脚本，如果对应的脚本在device_test_path已存在或在unnecessary_tests列表中，则跳过
 def ignore_tests(dir, contents):
-    ignore_list = [
-        name
-        for name in contents
-        if (
-            name in unnecessary_tests
-            or name in os.listdir(device_test_path)
-            or ("." in name and "test_" not in name)
-        )
-    ]
+    ignore_list = []
+    if os.path.exists(device_test_path):
+        ignore_list = [
+            name
+            for name in contents
+            if (
+                name in unnecessary_tests
+                or name in os.listdir(device_test_path)
+                or ("." in name and "test_" not in name)
+            )
+        ]
+    else:
+        ignore_list = [
+            name
+            for name in contents
+            if (
+                name in unnecessary_tests
+                or ("." in name and "test_" not in name)
+            )
+        ]
     return ignore_list
 
 
