@@ -3,7 +3,8 @@ import os
 import argparse
 import subprocess
 
-from process_test_utils import modify_src_code
+from process_test_utils import modify_src_code, display_skipped_tests
+# from display_skipped_tests import display_skipped_tests
 
 # 通过传参设置device_code
 parser = argparse.ArgumentParser()
@@ -266,9 +267,14 @@ unnecessary_tests = [
     "test_xnnpack_integration.py",
 ]
 
+show_skipped_tests = os.getenv('DISPLAY_SKIPPED_TESTS', False)
+
 if device_code == "npu":
     # 1. 从device_test_path拷贝测试数据到当前目录
     shutil.copytree(device_test_path, "../modified_tests/", dirs_exist_ok=True)
+
+if show_skipped_tests == "True":
+    display_skipped_tests(test_directory="../modified_tests/")
 
 
 # 2. 从torch_test_path拷贝测试脚本，如果对应的脚本在device_test_path已存在或在unnecessary_tests列表中，则跳过

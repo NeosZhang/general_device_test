@@ -30,3 +30,20 @@ export DISABLED_TESTS_FILE=./unsupported_test_cases/.pytorch-disabled-tests.json
 
 ```
 如果不是在test目录下运行测试用例，需要传入.pytorch-disabled-tests.json的绝对路径。
+
+4. 显示跳过的测试用例 \
+```
+export DISPLAY_SKIPPED_TESTS=True
+```
+or
+```
+python display_skipped_tests.py <path-to-test-files>
+```
+比如：
+```
+python display_skipped_tests.py ./modified_tests/test_view_ops.py
+python test_view_ops.py
+```
+<center>
+    <img src='skipped_display.png' alt="display skipped testes">
+</center>
