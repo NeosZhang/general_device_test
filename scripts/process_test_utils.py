@@ -154,7 +154,7 @@ def display_skipped_tests(test_directory):
                             + content[insert_position:]
                         )
 
-                # 替换 unittest.main() 为 unittest.main(testRunner=CustomTextTestRunner())
+                # 替换 run_tests() 为 unittest.main(testRunner=CustomTextTestRunner())
                 content = re.sub(
                     r"run\_tests\(\)",
                     "unittest.main(testRunner=CustomTextTestRunner())",
