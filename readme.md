@@ -33,6 +33,14 @@ export DISABLED_TESTS_FILE=./unsupported_test_cases/.pytorch-disabled-tests.json
 
 4. 显示跳过的测试用例 \
 ```
-export DISPLAY_SKIPPED_TESTES=True
+export DISPLAY_SKIPPED_TESTS=True
+```
+or
+```
+python display_skipped_tests.py <path-to-test-files>
+```
+比如：
+```
+python display_skipped_tests.py ./modify
 ```
 ![display skipped testes](skipped_display.png)

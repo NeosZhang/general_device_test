@@ -1,27 +1,26 @@
 import os
 import re
 
+import_unittest_module_code = """
+import unittest
+"""
 
-def display_skipped_tests():
-    import_unittest_module_code = """
-    import unittest
-    """
+custom_test_runner_code = """
+from unittest.runner import TextTestResult
+# Custom test result class to print skipped tests and their reasons
+class CustomTextTestResult(unittest.TextTestResult):
+    def addSkip(self, test, reason):
+        super().addSkip(test, reason)
+        print(f"Skipped {test}: {reason}")
 
-    custom_test_runner_code = """
-    from unittest.runner import TextTestResult
-    # Custom test result class to print skipped tests and their reasons
-    class CustomTextTestResult(unittest.TextTestResult):
-        def addSkip(self, test, reason):
-            super().addSkip(test, reason)
-            print(f"Skipped {{test}}: {{reason}}")
+class CustomTextTestRunner(unittest.TextTestRunner):
+    resultclass = CustomTextTestResult
 
-    class CustomTextTestRunner(unittest.TextTestRunner):
-        resultclass = CustomTextTestResult
+"""
 
-    """
-
+def display_skipped_tests(test_directory):
     # 定义你要搜索测试文件的目录
-    test_directory = "./modified_tests"  # 你可以修改为你的实际测试文件目录
+    # test_directory = "./modified_tests/"  # 你可以修改为你的实际测试文件目录
 
     # 遍历目录，找到所有以test_开头的.py文件
     for root, dirs, files in os.walk(test_directory):
@@ -55,3 +54,15 @@ def display_skipped_tests():
                 # 将修改后的内容写回文件
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file_path", type=str, help="path to test files")
+    args = parser.parse_args()
+
+    show_skipped_tests = os.getenv('SHOW_SKIPPED_TESTS', False)
+    if show_skipped_tests == "True":
+        display_skipped_tests(test_directory=args.file_path)
+
