@@ -87,7 +87,9 @@ RUN_PRIVATEUSE1_HALF = RUN_PRIVATEUSE1\n"
     elif device_code == "muxi":
         pass
     else:
-        raise ValueError("invald device code! The legal device code are: cuda, npu, muxi.")
+        raise ValueError(
+            "invald device code! The legal device code are: cuda, npu, muxi."
+        )
 
     return import_torch, test_code_map
 
@@ -95,7 +97,6 @@ RUN_PRIVATEUSE1_HALF = RUN_PRIVATEUSE1\n"
 def replace_in_text(text, mapping):
     # 将映射关系字典的键转换为正则表达式可以接受的格式，确保能正确处理特殊字符
     pattern = re.compile("|".join(re.escape(key) for key in mapping.keys()))
-
     # 使用正则表达式替换文本中的键
     return pattern.sub(lambda x: mapping[x.group()], text)
 
@@ -111,11 +112,13 @@ def modify_src_code(src: str, device_code: str):
         file.write(imports_text + functions_text)
 
 
-import_unittest_module_code = """
+def display_skipped_tests(test_directory):
+
+    import_unittest_module_code = """
 import unittest
 """
 
-custom_test_runner_code = """
+    custom_test_runner_code = """
 from unittest.runner import TextTestResult
 # Custom test result class to print skipped tests and their reasons
 class CustomTextTestResult(unittest.TextTestResult):
@@ -125,10 +128,7 @@ class CustomTextTestResult(unittest.TextTestResult):
 
 class CustomTextTestRunner(unittest.TextTestRunner):
     resultclass = CustomTextTestResult
-
 """
-
-def display_skipped_tests(test_directory):
     # 定义你要搜索测试文件的目录
     # test_directory = "./modified_tests/"  # 你可以修改为你的实际测试文件目录
 
@@ -164,7 +164,6 @@ def display_skipped_tests(test_directory):
                 # 将修改后的内容写回文件
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
-
 
 
 if __name__ == "__main__":
