@@ -4,14 +4,13 @@
 
 # 2. 适配逻辑
 ```
-cd scripts
-python prepare_tests.py npu
+python main.py npu
 ```
 1. 克隆PyTorch官方仓库(以下称为origin_torch)和设备对应版本的torch(以下称为device_torch)
-2. 将device_torch中的测例脚本拷贝到modified_tests路径下
-3. 过滤部分origin_torch中不必要的测试脚本，并将剩余的测试脚本拷贝到to_process_tests路径下
-4. 对to_process_tests路径中的测试脚本进行处理(符号替换)
-5. modified_tests和to_process_tests中的测试脚本即为device所有的测试脚本
+2. 将device_torch中的测例脚本拷贝到项目路径下
+3. 过滤部分origin_torch中不必要的测试脚本，并将剩余的测试脚本拷贝到tests/processed_tests路径下
+4. 对processed_tests路径中的测试脚本进行处理(符号替换)
+5. tests/device_specified_tests和tests/processed_tests中的测试脚本即为device所有的测试脚本
 
 # 3. 测试方法
 1. 执行单个测试脚本，以test_autocast.py为例 \
