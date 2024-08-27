@@ -4,7 +4,7 @@ import argparse
 import subprocess
 
 from process_test_utils import modify_src_code, display_skipped_tests
-# from display_skipped_tests import 
+# from display_skipped_tests import display_skipped_tests
 
 # 通过传参设置device_code
 parser = argparse.ArgumentParser()

@@ -41,6 +41,9 @@ python display_skipped_tests.py <path-to-test-files>
 ```
 比如：
 ```
-python display_skipped_tests.py ./modify
+python display_skipped_tests.py ./modified_tests/test_view_ops.py
+python test_view_ops.py
 ```
-![display skipped testes](skipped_display.png)
+<center>
+    <img src='skipped_display.png' alt="display skipped testes">
+</center>
