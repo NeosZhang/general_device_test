@@ -16,6 +16,13 @@ parser.add_argument(
 args = parser.parse_args()
 device_code = args.device_code
 
+MAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+DEVICE_TORCH_PATH = MAIN_DIR + "/device_torch/"
+ORIGIN_TORCH_PATH = MAIN_DIR + "/origin_torch/"
+DEVICE_TEST_PATH = DEVICE_TORCH_PATH + "test"
+TORCH_TEST_PATH = ORIGIN_TORCH_PATH + "test"
+SHOW_SKIPPED_TESTS = os.getenv("DISPLAY_SKIPPED_TESTS", False)
+
 assert device_code in [
     "cuda",
     "npu",
@@ -23,46 +30,43 @@ assert device_code in [
     "muxi",
 ], "the supported device_code are 'cuda', 'npu', 'camb', 'muxi'."
 
-main_dir = os.path.dirname(os.path.abspath(__file__))
-print(main_dir)
-device_torch_path = main_dir + "/device_torch/"
-origin_torch_path = main_dir + "/origin_torch/"
 
-if not os.path.exists(origin_torch_path):
+if not os.path.exists(ORIGIN_TORCH_PATH):
     sparse_checkout(
-        "https://github.com/pytorch/pytorch.git", origin_torch_path, ["test"], "v2.1.0"
+        "https://github.com/pytorch/pytorch.git", ORIGIN_TORCH_PATH, ["test"], "v2.1.0"
     )
 
 if device_code == "npu":
-    if not os.path.exists(device_torch_path):
+    if not os.path.exists(DEVICE_TORCH_PATH):
         sparse_checkout(
             "https://gitee.com/ascend/pytorch.git",
-            device_torch_path,
+            DEVICE_TORCH_PATH,
             ["test"],
             "v2.1.0",
         )
+        from utils.npu_get_synchronized_files import sync_files
 
-device_test_path = device_torch_path + "test"
-torch_test_path = origin_torch_path + "test"
-show_skipped_tests = os.getenv("DISPLAY_SKIPPED_TESTS", False)
-
+        sync_files(ORIGIN_TORCH_PATH, DEVICE_TORCH_PATH)
 
 if device_code == "npu":
     # 1. 从device_test_path拷贝测试数据到当前目录
     shutil.copytree(
-        device_test_path, main_dir + "/tests/device_specified_tests/", dirs_exist_ok=True
+        DEVICE_TEST_PATH,
+        MAIN_DIR + "/tests/device_specified_tests/",
+        dirs_exist_ok=True,
     )
+
 
 # 2. 从torch_test_path拷贝测试脚本，如果对应的脚本在device_test_path已存在或在unnecessary_tests列表中，则跳过
 def ignore_tests(dir, contents):
     ignore_list = []
-    if os.path.exists(device_test_path):
+    if os.path.exists(DEVICE_TEST_PATH):
         ignore_list = [
             name
             for name in contents
             if (
                 name in unnecessary_tests
-                or name in os.listdir(device_test_path)
+                or name in os.listdir(DEVICE_TEST_PATH)
                 or ("." in name and "test_" not in name)
             )
         ]
@@ -76,17 +80,17 @@ def ignore_tests(dir, contents):
 
 
 shutil.copytree(
-    torch_test_path,
-    main_dir + "/tests/processed_tests/",
+    TORCH_TEST_PATH,
+    MAIN_DIR + "/tests/processed_tests/",
     ignore=ignore_tests,
     dirs_exist_ok=True,
 )
 
 # 3. 对processed_tests下的文件进行符号替换处理
-os.chdir(main_dir + "/tests/processed_tests")
+os.chdir(MAIN_DIR + "/tests/processed_tests")
 for item in os.listdir(os.getcwd()):
     if item.startswith("test_") and item.endswith(".py"):
         modify_src_code(item, device_code)
 
-if show_skipped_tests == "True":
-    display_skipped_tests(test_directory=main_dir + "/tests/")
+if SHOW_SKIPPED_TESTS == "True":
+    display_skipped_tests(test_directory=MAIN_DIR + "/tests/")

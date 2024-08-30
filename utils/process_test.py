@@ -3,6 +3,7 @@ import re
 
 
 def split_script(input_file):
+    """split_script用于将测试脚本test_xxx.py拆分为import部分和代码主体部分"""
     # 用于匹配 import 和 from ... import 语句（包括多行）
     import_pattern = re.compile(r"^\s*(import\s+\w+|from\s+\w+(\.\w+)*\s+import\s+)")
     continuation_pattern = re.compile(r"^\s*[\(\,]")
@@ -11,6 +12,7 @@ def split_script(input_file):
     with open(input_file, "r") as f:
         lines = f.readlines()
 
+    # 搜索import代码的范围，从代码开头到一个等号为止
     search_import_lines = []
     for line in lines:
         if "=" in line:
@@ -44,32 +46,34 @@ def split_script(input_file):
 def device_patch_for_test(device_code: str):
     import_torch = ""
     test_code_map = {
-        "onlyCUDAAndPRIVATEUSE1": "onlyCUDAAndPRIVATEUSE1",
-        "TEST_MULTIGPU": "TEST_MULTIGPU",
-        "TEST_CUDA_GRAPH": "TEST_CUDA_GRAPH",
-        "TEST_CUDA": "TEST_CUDA",
-        "TEST_CUDNN": "TEST_CUDNN",
-        "torch.cuda": "torch.cuda",
-        "onlyCUDA": "onlyCUDA",
-        "RUN_CUDA": "RUN_CUDA",
-        "dtypesIfCUDA": "dtypesIfCUDA",
-        ".cuda(": ".cuda(",
-        '"cuda"': '"cuda"',
-        "'cuda'": "'cuda'",
-        "cuda:": "cuda:",
+        "onlyCUDAAndPRIVATEUSE1": "",
+        "TEST_MULTIGPU": "",
+        "TEST_CUDA_GRAPH": "",
+        "TEST_CUDA": "",
+        "TEST_CUDNN": "",
+        "torch.cuda": "",
+        "onlyCUDA": "",
+        "RUN_CUDA": "",
+        "dtypesIfCUDA": "",
+        ".cuda(": "",
+        '"cuda"': "",
+        "'cuda'": "",
+        "cuda:": "",
     }
     if device_code == "cuda":
         pass
     elif device_code == "npu":
-        import_torch = "import torch_npu\nimport torch_npu.testing\nfrom torch.testing._internal.common_utils import TEST_PRIVATEUSE1\n\
-from torch.testing._internal.common_device_type import onlyPRIVATEUSE1, dtypesIfPRIVATEUSE1\n\
-TEST_MULTINPU = TEST_PRIVATEUSE1 and torch_npu.npu.device_count() >= 2\n\
-RUN_PRIVATEUSE1_MULTI_GPU = TEST_MULTINPU\n\
-TEST_PRIVATEUSE1_VERSION = 5130\n\
-RUN_PRIVATEUSE1 = True\n\
-TEST_NPU = torch_npu.npu.is_available()\n\
-TEST_BFLOAT16 = TEST_NPU and torch_npu.npu.is_bf16_supported()\n\
-RUN_PRIVATEUSE1_HALF = RUN_PRIVATEUSE1\n"
+        import_torch = """import torch_npu
+import torch_npu.testing
+from torch.testing._internal.common_utils import TEST_PRIVATEUSE1
+from torch.testing._internal.common_device_type import onlyPRIVATEUSE1, dtypesIfPRIVATEUSE1
+TEST_MULTINPU = TEST_PRIVATEUSE1 and torch_npu.npu.device_count() >= 2
+RUN_PRIVATEUSE1_MULTI_GPU = TEST_MULTINPU
+TEST_PRIVATEUSE1_VERSION = 5130
+RUN_PRIVATEUSE1 = True
+TEST_NPU = torch_npu.npu.is_available()
+TEST_BFLOAT16 = TEST_NPU and torch_npu.npu.is_bf16_supported()
+RUN_PRIVATEUSE1_HALF = RUN_PRIVATEUSE1"""
 
         test_code_map["onlyCUDAAndPRIVATEUSE1"] = "onlyPRIVATEUSE1"
         test_code_map["TEST_MULTIGPU"] = "TEST_MULTINPU"
@@ -90,7 +94,6 @@ RUN_PRIVATEUSE1_HALF = RUN_PRIVATEUSE1\n"
         raise ValueError(
             "invald device code! The legal device code are: cuda, npu, muxi."
         )
-
     return import_torch, test_code_map
 
 
@@ -145,7 +148,7 @@ class CustomTextTestResult(unittest.TextTestResult):
         if self.skipped_tests:
             self.stream.writeln(self.separator1)
             for test, reason in self.skipped_tests:
-                self.stream.writeln(f"{self.getDescription(test)}: {reason}")
+                self.stream.writeln(f"Skip {self.getDescription(test)}: {reason}")
 
 class CustomTextTestRunner(unittest.TextTestRunner):
     def _makeResult(self):
