@@ -83,9 +83,20 @@ def modify_src_code(src: str, device_code: str):
     # torch.cuda.get_device_capability()
     mock_code = """
 from unittest.mock import patch
-mocked_capability = (8, 0)
-patcher = patch('torch.cuda.get_device_capability', return_value=mocked_capability)
-patcher.start()
+patch('torch.cuda.get_device_capability', return_value=(8, 0)).start()
+
+import torch_npu
+if not hasattr(torch._C, '_cuda_setStream'):
+    def _cuda_setStream(*args, **kwargs):
+        pass
+    setattr(torch._C, '_cuda_setStream', _cuda_setStream)
+patch('torch._C._cuda_setStream', new=torch_npu._C._npu_setStream).start()
+
+if not hasattr(torch._C, '_cuda_setDevice'):
+    def _cuda_setDevice(*args, **kwargs):
+        pass
+    setattr(torch._C, '_cuda_setDevice', _cuda_setDevice)
+patch('torch._C._cuda_setDevice', new=torch_npu._C._npu_setDevice).start()
 """
     imports_text = import_patch + mock_code + imports_text
 
