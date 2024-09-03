@@ -1,7 +1,7 @@
 # torch/test中的某些测例对于国产设备是不必要的，或者对应的测试脚本不适用于国产设备
 # 所以使用该脚本进行过滤，对过滤后的文件进行处理
 unnecessary_tests = [
-    # "_nvfuser",
+    "_nvfuser",
     # "_test_bazel.py",
     # "ao",
     # "ao/sparsity",
