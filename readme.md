@@ -38,3 +38,13 @@ export DISPLAY_SKIPPED_TESTS=True
 <center>
     <img src='skipped_display.png' alt="display skipped testes">
 </center>
+
+5. 抓取失败日志到json文件，避免下次测试 \
+首先，测试时抓取测试log：
+```bash
+python test_xxx.py 2>&1 | tee test_xxx.log
+```
+然后运行抓取log脚本：
+```bash
+python get_EF_test_from_log.py --file test_xxx.log
+```
