@@ -68,6 +68,14 @@ def ignore_tests(dir, contents):
                 or name in os.listdir(DEVICE_TEST_PATH)
             )
         ]
+    else:
+        ignore_list = [
+            name
+            for name in contents
+            if (
+                name in unnecessary_tests
+            )
+        ]
     return ignore_list
 
 
