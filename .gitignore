@@ -1,3 +1,2 @@
-device_torch/
 origin_torch/
-tests/
+processed_tests
