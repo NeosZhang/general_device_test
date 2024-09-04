@@ -1,16 +1,15 @@
 # 1. 背景
-1. 本工具用于在不同的国产设备上运行torch官方的测试，由于torch官方的测试主要是针对CUDA设备的，所以需要一些改动才能适配国产设备。
+1. 本工具是ditorch的子仓库，用于在不同的国产设备上运行torch官方的测试。由于torch官方的测试主要是针对CUDA设备的，所以需要一些改动才能适配国产设备。
 2. 目前该工具暂时只完成了对NPU设备的适配。
 
 # 2. 适配逻辑
 ```
-python main.py npu
+python main.py
 ```
 1. 克隆PyTorch官方仓库(以下称为origin_torch)和设备对应版本的torch(以下称为device_torch)
-2. 将device_torch中的测例脚本拷贝到项目路径下
-3. 过滤部分origin_torch中不必要的测试脚本，并将剩余的测试脚本拷贝到tests/processed_tests路径下
-4. 对processed_tests路径中的测试脚本进行处理(符号替换)
-5. tests/device_specified_tests和tests/processed_tests中的测试脚本即为device所有的测试脚本
+3. 过滤部分origin_torch中不必要的测试脚本，并将剩余的测试脚本拷贝到processed_tests路径下
+4. 对processed_tests路径中的测试脚本进行处理
+5. processed_tests中的测试脚本即为device所有的测试脚本
 
 # 3. 测试方法
 1. 执行单个测试脚本，以test_autocast.py为例 \
