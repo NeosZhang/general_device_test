@@ -60,7 +60,8 @@ patch('torch._C._cuda_setDevice', new=torch_npu._C._npu_setDevice).start()
         import_unittest_module_code = """
 import unittest
 """
-        custom_test_runner_code = """
+        custom_test_runner_code = r"""
+import os
 import json
 class CustomTextTestResult(unittest.TextTestResult):
 
@@ -94,14 +95,23 @@ class CustomTextTestResult(unittest.TextTestResult):
 
         # 将异常信息转换为字符串
         # error_message = self._exc_info_to_string(err, test)
-        file1 = "test_records/test_failures_errors.json"
+        current_file_path = os.path.abspath(__file__)
+        desired_dir = "origin_torch"
+        desired_path = current_file_path.split(desired_dir)[0] + desired_dir
+        parent_directory = os.path.dirname(desired_path)
+        file1 = parent_directory + "/unsupported_test_cases/test_failures_errors.json"
+        # 检查文件是否存在
+        if not os.path.exists(file1):
+            # 如果文件不存在，创建一个空的 JSON 文件
+            with open(file1, 'w') as f:
+                json.dump({}, f)
         fr = open(file1)
         content = json.load(fr)
         for test, err in self.all_EF_infos:
             exctype, value, tb = err
             need_value = str(value).split("\n\nTo execute this test,")[0]
             content[str(test)] = [f"{type(value).__name__}", [f"{need_value}"]]
-        with open("test_records/test_failures_errors.json", mode="w") as fp:
+        with open(file1, mode="w") as fp:
             fp.write("{\n")
             length = len(content.keys()) - 1
             for i, (key, (value1, value2)) in enumerate(content.items()):
