@@ -47,3 +47,12 @@ python test_xxx.py 2>&1 | tee test_xxx.log
 ```bash
 python get_EF_test_from_log.py --file test_xxx.log
 ```
+
+6. 记录测试结果为Error和Failure的测试到json文件 \
+```bash
+python process_test.py test_xxx.py
+```
+然后运行测试文件，查看文件可看到记录：
+![EF_records](EF_records.png)
+记录格式为：\
+`"{test_name}": ["{Error type}", ["{error reason}"]]`
