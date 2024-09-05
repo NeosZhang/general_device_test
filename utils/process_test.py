@@ -25,7 +25,7 @@ def split_script(input_file):
 
 
 def process_src_code(src: str):
-    device_npu = ditorch.framework.split(":")[0]
+    device_torch = ditorch.framework.split(":")[0]
     import_patch = """import torch
 import ditorch
 """
@@ -34,7 +34,7 @@ import ditorch
     # 对某些device不支持的符号进行mock
     # torch.cuda.get_device_capability()
     mock_code = ""
-    if device_npu == "torch_npu":
+    if device_torch == "torch_npu":
         mock_code = """
 from unittest.mock import patch
 patch('torch.cuda.get_device_capability', return_value=(8, 0)).start()
@@ -52,17 +52,10 @@ if not hasattr(torch._C, '_cuda_setDevice'):
     setattr(torch._C, '_cuda_setDevice', _cuda_setDevice)
 patch('torch._C._cuda_setDevice', new=torch_npu._C._npu_setDevice).start()
 """
-    imports_text = import_patch + mock_code + imports_text
-
-    # 通过环境变量，设置是否需要打印跳过测例的详细信息
-    display_skipped_tests = os.environ.get("DISPLAY_SKIPPED_TESTS")
-    if display_skipped_tests in ["True", "true", "1"]:
-        import_unittest_module_code = """
-import unittest
-"""
-        custom_test_runner_code = r"""
-import os
+    custom_test_code = r"""import os
 import json
+import unittest
+
 class CustomTextTestResult(unittest.TextTestResult):
 
     def __init__(self, *args, **kwargs):
@@ -94,50 +87,41 @@ class CustomTextTestResult(unittest.TextTestResult):
                 self.stream.writeln(f"Skip {self.getDescription(test)}: {reason}")
 
         # 将异常信息转换为字符串
-        # error_message = self._exc_info_to_string(err, test)
-        current_file_path = os.path.abspath(__file__)
-        desired_dir = "origin_torch"
-        desired_path = current_file_path.split(desired_dir)[0] + desired_dir
-        parent_directory = os.path.dirname(desired_path)
-        file1 = parent_directory + "/unsupported_test_cases/test_failures_errors.json"
-        # 检查文件是否存在
-        if not os.path.exists(file1):
-            # 如果文件不存在，创建一个空的 JSON 文件
-            with open(file1, 'w') as f:
+        disabled_test_json = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/unsupported_test_cases/test_failures_errors.json"
+        if not os.path.exists(disabled_test_json) or os.path.getsize(disabled_test_json) == 0:
+            with open(disabled_test_json, 'w') as f:
                 json.dump({}, f)
-        fr = open(file1)
-        content = json.load(fr)
-        for test, err in self.all_EF_infos:
-            exctype, value, tb = err
-            need_value = str(value).split("\n\nTo execute this test,")[0]
-            content[str(test)] = [f"{type(value).__name__}", [f"{need_value}"]]
-        with open(file1, mode="w") as fp:
-            fp.write("{\n")
-            length = len(content.keys()) - 1
-            for i, (key, (value1, value2)) in enumerate(content.items()):
-                if i < length:
-                    fp.write(f"  \"{key}\": [\"{value1}\", [\"{value2}\"]]" + ",\n")
-                else:
-                    fp.write(f"  \"{key}\": [\"{value1}\", [\"{value2}\"]]" + "\n")
-            fp.write("}\n")
-        fr.close()
+            f.close()
+        with open(disabled_test_json, 'a+') as f:
+            try:
+                # 如果文件为空，则初始化为空字典
+                content = json.load(f) if f.read() else {}
+                f.seek(0)  # 将文件指针移到开头
+                f.truncate()  # 清空文件内容
+            except json.JSONDecodeError:
+                # 如果 JSON 解析失败，初始化为空字典
+                content = {}
+                f.seek(0)  # 将文件指针移到开头
+                f.truncate()  # 清空文件内容
+            for test, err in self.all_EF_infos:
+                exctype, value, tb = err
+                need_value = str(value).split("\n")[0]
+                if str(test) not in content:
+                    content[str(test)] = [f"{exctype}", [f"{need_value}"]]
+            print("content = ", content)
+            json.dump(content, f, indent=4)
 
 class CustomTextTestRunner(unittest.TextTestRunner):
     def _makeResult(self):
         return CustomTextTestResult(self.stream, self.descriptions, self.verbosity)
-
 """
-        if "import unittest\n" not in imports_text:
-            imports_text = import_unittest_module_code + imports_text
-            # 检查是否已经包含CustomTextTestRunner代码，避免重复添加
-        if "CustomTextTestRunner" not in functions_text:
-            functions_text = custom_test_runner_code + functions_text
+    imports_text = import_patch + mock_code + imports_text + custom_test_code
 
-        functions_text = re.sub(
-            r"run\_tests\(\)",
-            "unittest.main(testRunner=CustomTextTestRunner())",
-            functions_text,
-        )
+    functions_text = re.sub(
+        r"run\_tests\(\)",
+        "unittest.main(testRunner=CustomTextTestRunner())",
+        functions_text,
+    )
 
     with open(src, "w", encoding="utf-8") as file:
         file.write(imports_text + functions_text)
