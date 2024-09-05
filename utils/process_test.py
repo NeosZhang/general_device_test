@@ -107,7 +107,7 @@ class CustomTextTestResult(unittest.TextTestResult):
                 exctype, value, tb = err
                 need_value = str(value).split("\n")[0]
                 if str(test) not in content:
-                    content[str(test)] = [f"{exctype}", [f"{need_value}"]]
+                    content[str(test)] = [f"{exctype.__name__}", [f"{need_value}"]]
             print("content = ", content)
             json.dump(content, f, indent=4)
 
