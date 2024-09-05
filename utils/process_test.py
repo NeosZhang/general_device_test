@@ -61,15 +61,28 @@ patch('torch._C._cuda_setDevice', new=torch_npu._C._npu_setDevice).start()
 import unittest
 """
         custom_test_runner_code = """
+import json
 class CustomTextTestResult(unittest.TextTestResult):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.skipped_tests = []
+        self.all_EF_infos = []
 
     def addSkip(self, test, reason):
         super().addSkip(test, reason)
         self.skipped_tests.append((test, reason))
+
+    def addFailure(self, test, err):
+        super().addFailure(test, err)
+
+        self.all_EF_infos.append((test, err))
+
+    def addError(self, test, err):
+        super().addError(test, err)
+        
+        self.all_EF_infos.append((test, err))
+
 
     def printErrors(self):
         super().printErrors()
@@ -78,6 +91,25 @@ class CustomTextTestResult(unittest.TextTestResult):
             self.stream.writeln(self.separator1)
             for test, reason in self.skipped_tests:
                 self.stream.writeln(f"Skip {self.getDescription(test)}: {reason}")
+
+        # 将异常信息转换为字符串
+        # error_message = self._exc_info_to_string(err, test)
+        file1 = "test_records/test_failures_errors.json"
+        fr = open(file1)
+        content = json.load(fr)
+        for test, err in self.all_EF_infos:
+            exctype, value, tb = err
+            content[str(test)] = [f"{str(type(value).__name__)}", [f"{value}"]]
+        with open("test_records/test_failures_errors.json", mode="w") as fp:
+            fp.write("{\n")
+            length = len(content.keys()) - 1
+            for i, (key, (value1, value2)) in enumerate(content.items()):
+                if i < length:
+                    fp.write(f"  \"{key}\": [\"{value1}\", [\"{value2}\"]]" + ",\n")
+                else:
+                    fp.write(f"  \"{key}\": [\"{value1}\", [\"{value2}\"]]" + "\n")
+            fp.write("}\n")
+        fr.close()
 
 class CustomTextTestRunner(unittest.TextTestRunner):
     def _makeResult(self):
