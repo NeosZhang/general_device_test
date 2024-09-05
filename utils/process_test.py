@@ -99,7 +99,8 @@ class CustomTextTestResult(unittest.TextTestResult):
         content = json.load(fr)
         for test, err in self.all_EF_infos:
             exctype, value, tb = err
-            content[str(test)] = [f"{str(type(value).__name__)}", [f"{value}"]]
+            need_value = str(value).split("\n\nTo execute this test,")[0]
+            content[str(test)] = [f"{type(value).__name__}", [f"{need_value}"]]
         with open("test_records/test_failures_errors.json", mode="w") as fp:
             fp.write("{\n")
             length = len(content.keys()) - 1
