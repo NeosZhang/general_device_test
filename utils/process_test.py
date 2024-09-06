@@ -51,8 +51,21 @@ if not hasattr(torch._C, '_cuda_setDevice'):
         pass
     setattr(torch._C, '_cuda_setDevice', _cuda_setDevice)
 patch('torch._C._cuda_setDevice', new=torch_npu._C._npu_setDevice).start()
+
+if not hasattr(torch.backends.cudnn, 'is_acceptable'):
+    def is_acceptable(*args, **kwargs):
+        pass
+    setattr(torch.backends.cudnn, 'is_acceptable', is_acceptable)
+patch('torch.backends.cudnn.is_acceptable', return_value=True).start()
+
+if not hasattr(torch.backends.cudnn, 'version'):
+    def version(*args, **kwargs):
+        pass
+    setattr(torch.backends.cudnn, 'version', version)
+patch('torch.backends.cudnn.version', return_value=90000).start()
 """
-    custom_test_code = r"""import os
+    custom_test_code = r"""
+import os
 import json
 import unittest
 
@@ -87,29 +100,33 @@ class CustomTextTestResult(unittest.TextTestResult):
                 self.stream.writeln(f"Skip {self.getDescription(test)}: {reason}")
 
         # 将异常信息转换为字符串
-        disabled_test_json = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/unsupported_test_cases/test_failures_errors.json"
+        device_torch = ditorch.framework.split(":")[0]
+        disabled_test_json = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + f"/unsupported_test_cases/{device_torch}_disabled_tests.json"
         if not os.path.exists(disabled_test_json) or os.path.getsize(disabled_test_json) == 0:
             with open(disabled_test_json, 'w') as f:
                 json.dump({}, f)
-            f.close()
-        with open(disabled_test_json, 'a+') as f:
+        with open(disabled_test_json, 'r+') as f:
             try:
-                # 如果文件为空，则初始化为空字典
-                content = json.load(f) if f.read() else {}
-                f.seek(0)  # 将文件指针移到开头
-                f.truncate()  # 清空文件内容
-            except json.JSONDecodeError:
-                # 如果 JSON 解析失败，初始化为空字典
+                # 如果文件中有内容，则加载内容
+                f.seek(0)
+                content = json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                # 如果文件为空或解析失败，则初始化为空字典
                 content = {}
-                f.seek(0)  # 将文件指针移到开头
-                f.truncate()  # 清空文件内容
+            
+            # 更新内容
             for test, err in self.all_EF_infos:
                 exctype, value, tb = err
                 need_value = str(value).split("\n")[0]
+                # 如果测试还未存在于字典中，添加新内容
                 if str(test) not in content:
-                    content[str(test)] = [f"{exctype.__name__}", [f"{need_value}"]]
-            print("content = ", content)
+                    content[str(test)] = [f"{exctype.__name__} {need_value}", ["linux"]]
+
+            # 将文件指针移到开头，写入更新后的内容
+            f.seek(0)
             json.dump(content, f, indent=4)
+            f.truncate()  # 截断文件以确保文件末尾的多余数据被清除
+
 
 class CustomTextTestRunner(unittest.TextTestRunner):
     def _makeResult(self):
