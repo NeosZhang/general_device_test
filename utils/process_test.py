@@ -132,11 +132,47 @@ class CustomTextTestRunner(unittest.TextTestRunner):
     def _makeResult(self):
         return CustomTextTestResult(self.stream, self.descriptions, self.verbosity)
 """
-    imports_text = import_patch + mock_code + imports_text + custom_test_code
+
+    over_time_test_code = """
+import unittest
+import threading
+import time
+from unittest import mock
+
+# 自定义的 OverTimeError
+class OverTimeError(Exception):
+    pass
+
+# 定义一个带超时的运行方法
+def run_with_timeout(self, result=None):
+    timeout = getattr(self, 'timeout', 60)  # 获取每个测试类定义的超时时间，默认60秒
+    test_thread = threading.Thread(target=original_run, args=(self, result))
+    test_thread.start()
+    test_thread.join(timeout)
+
+    if test_thread.is_alive():
+        # 测试超时，标记为失败
+        result.addFailure(self, (OverTimeError, OverTimeError(f"Test exceeded time limit of {timeout} seconds."), None))
+        # 强制停止超时线程
+        _stop_thread(test_thread)
+
+# 强制终止线程的方法
+def _stop_thread(thread):
+    if not thread.is_alive():
+        return
+    import ctypes
+    ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), ctypes.py_object(SystemExit))
+
+# 这里保存原始的 run 方法
+original_run = unittest.TestCase.run
+"""
+    imports_text = import_patch + mock_code + imports_text + custom_test_code + over_time_test_code
 
     functions_text = re.sub(
         r"run\_tests\(\)",
-        "unittest.main(testRunner=CustomTextTestRunner())",
+        """with mock.patch('unittest.TestCase.run', new=run_with_timeout):
+        unittest.main(testRunner=CustomTextTestRunner)
+""",
         functions_text,
     )
 
