@@ -120,7 +120,7 @@ class CustomTextTestResult(unittest.TextTestResult):
                 need_value = str(value).split("\n")[0]
                 # 如果测试还未存在于字典中，添加新内容
                 if str(test) not in content:
-                    content[str(test)] = [f"{exctype.__name__} {need_value}", ["linux"]]
+                    content[str(test)] = [f"{exctype.__name__}: {need_value}", ["linux"]]
 
             # 将文件指针移到开头，写入更新后的内容
             f.seek(0)
@@ -134,19 +134,58 @@ class CustomTextTestRunner(unittest.TextTestRunner):
 """
 
     over_time_test_code = """
-import unittest
 import threading
 import time
-from unittest import mock
 
 # 自定义的 OverTimeError
 class OverTimeError(Exception):
     pass
 
+# 这里保存原始的 run 方法
+original_run = TestCase.run
+
+# 强制终止线程的方法
+def _stop_thread(thread):
+    if not thread.is_alive():
+        return
+    import ctypes
+    ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), ctypes.py_object(SystemExit))
+
 # 定义一个带超时的运行方法
 def run_with_timeout(self, result=None):
+    print(f"Class: {self.__class__.__name__}, Method: {self._testMethodName}")
     timeout = getattr(self, 'timeout', 60)  # 获取每个测试类定义的超时时间，默认60秒
-    test_thread = threading.Thread(target=original_run, args=(self, result))
+
+    # 获取主线程的 _tls (如果存在的话)
+    if hasattr(self, "_tls"):
+        main_tls = self._tls
+    else:
+        main_tls = None
+
+    def thread_target():
+        # 确保子线程有自己的 _tls 并初始化
+        if main_tls is not None:
+            self._tls = threading.local()  # 创建子线程的 _tls 对象
+            # 初始化主线程中的属性
+            if hasattr(main_tls, 'precision'):
+                self._tls.precision = main_tls.precision
+            else:
+                self._tls.precision = TestCase._precision  # 或者设置一个默认值
+            if hasattr(main_tls, 'rel_tol'):
+                self._tls.rel_tol = main_tls.rel_tol
+            else:
+                self._tls.rel_tol = TestCase._rel_tol  # 或者设置一个默认值
+        else:
+            # 如果主线程没有 _tls，也在子线程中设置默认值
+            self._tls = threading.local()
+            self._tls.precision = TestCase._precision
+            self._tls.rel_tol = TestCase._rel_tol
+
+        # 运行原始的测试方法
+        original_run(self, result)
+
+    # 在单独的线程中运行测试
+    test_thread = threading.Thread(target=thread_target)
     test_thread.start()
     test_thread.join(timeout)
 
@@ -156,22 +195,15 @@ def run_with_timeout(self, result=None):
         # 强制停止超时线程
         _stop_thread(test_thread)
 
-# 强制终止线程的方法
-def _stop_thread(thread):
-    if not thread.is_alive():
-        return
-    import ctypes
-    ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), ctypes.py_object(SystemExit))
-
-# 这里保存原始的 run 方法
-original_run = unittest.TestCase.run
+# 替换原始的 TestCase.run 方法
+TestCase.run = run_with_timeout
 """
     imports_text = import_patch + mock_code + imports_text + custom_test_code + over_time_test_code
 
     functions_text = re.sub(
         r"run\_tests\(\)",
-        """with mock.patch('unittest.TestCase.run', new=run_with_timeout):
-        unittest.main(testRunner=CustomTextTestRunner)
+        """
+    unittest.main(testRunner=CustomTextTestRunner)
 """,
         functions_text,
     )
