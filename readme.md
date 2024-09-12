@@ -28,31 +28,10 @@ export DISABLED_TESTS_FILE=./unsupported_test_cases/.pytorch-disabled-tests.json
 
 ```
 如果不是在test目录下运行测试用例，需要传入.pytorch-disabled-tests.json的绝对路径。
-
-4. 显示跳过的测试用例 \
-在main.py运行前设置`DISPLAY_SKIPPED_TESTS`环境变量
-```
-export DISPLAY_SKIPPED_TESTS=True
-```
-<center>
-    <img src='skipped_display.png' alt="display skipped testes">
-</center>
-
-5. 抓取失败日志到json文件，避免下次测试 \
-首先，测试时抓取测试log：
-```bash
-python test_xxx.py 2>&1 | tee test_xxx.log
-```
-然后运行抓取log脚本：
-```bash
-python get_EF_test_from_log.py --file test_xxx.log
-```
-
-6. 记录测试结果为Error和Failure的测试到json文件 \
+4. 测试结果为Error和Failure的测试会被自动记录到unsupported_test_cases下的json文件 \
 ```bash
 python process_test.py test_xxx.py
 ```
-然后运行测试文件，查看文件可看到记录：
 ![EF_records](EF_records.png)
 记录格式为：\
 `"{test_name}": ["{Error type}", ["{error reason}"]]`
