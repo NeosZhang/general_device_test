@@ -1,5 +1,5 @@
 # 1. <font color=#0099ff>介绍</font>
-1. 本工具是`ditorch`的子仓库，用于在不同的国产设备上运行`PyTorch`官方的测试用例。
+1. 本工具是`ditorch`的测试工具，用于在不同的国产设备上运行`PyTorch`官方的测试用例。
 2. 目前只适配了`torch_npu`。
 
 # 2. <font color=#0099ff>适配逻辑</font>
