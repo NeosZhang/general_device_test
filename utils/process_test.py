@@ -65,6 +65,37 @@ if not hasattr(torch.backends.cudnn, 'version'):
     setattr(torch.backends.cudnn, 'version', version)
 patch('torch.backends.cudnn.version', return_value=90000).start()
 """
+    elif device_torch == "torch_dipu":
+        mock_code = """
+from unittest.mock import patch
+patch('torch.cuda.get_device_capability', return_value=(8, 0)).start()
+
+import torch_dipu
+if not hasattr(torch._C, '_cuda_setStream'):
+    def _cuda_setStream(*args, **kwargs):
+        pass
+    setattr(torch._C, '_cuda_setStream', _cuda_setStream)
+patch('torch._C._cuda_setStream', new=torch_dipu.set_stream).start()
+
+if not hasattr(torch._C, '_cuda_setDevice'):
+    def _cuda_setDevice(*args, **kwargs):
+        pass
+    setattr(torch._C, '_cuda_setDevice', _cuda_setDevice)
+patch('torch._C._cuda_setDevice', new=torch_dipu.set_device).start()
+
+if not hasattr(torch.backends.cudnn, 'is_acceptable'):
+    def is_acceptable(*args, **kwargs):
+        pass
+    setattr(torch.backends.cudnn, 'is_acceptable', is_acceptable)
+patch('torch.backends.cudnn.is_acceptable', return_value=True).start()
+
+if not hasattr(torch.backends.cudnn, 'version'):
+    def version(*args, **kwargs):
+        pass
+    setattr(torch.backends.cudnn, 'version', version)
+patch('torch.backends.cudnn.version', return_value=90000).start()
+"""
+
     custom_test_code = r"""
 import os
 import json
