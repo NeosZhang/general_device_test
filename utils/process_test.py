@@ -16,8 +16,9 @@ def split_script(input_file):
             break
         else:
             import_lines.append(line)
-    while import_lines[-1].startswith("#"):
-        import_lines.pop()
+    if import_lines:
+        while import_lines[-1].startswith("#"):
+            import_lines.pop()
 
     imports_text = "".join(import_lines)
     functions_text = "".join(lines[len(import_lines) :])
@@ -186,6 +187,7 @@ def run_with_timeout(self, result=None):
 
     # 在单独的线程中运行测试
     test_thread = threading.Thread(target=thread_target)
+    test_thread.daemon = True
     test_thread.start()
     test_thread.join(timeout)
 
