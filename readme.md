@@ -32,7 +32,7 @@ python -m unittest test_file.Test_Class.test_method
 ```
 python test_autocast.py -v -k test_autocast_nn_fp32
 ```
-4. <font color=#0099ff>**-f --failfast**</font>
+4. <font color=#0099ff>**-f --failfast**</font> \
 当出现第一个错误或者失败时，停止运行测试。
 
 # 4. <font color=#0099ff>错误记录和跳过</font>
