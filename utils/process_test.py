@@ -69,6 +69,7 @@ patch('torch.backends.cudnn.version', return_value=90000).start()
 import os
 import json
 import unittest
+from datetime import datetime
 
 class CustomTextTestResult(unittest.TextTestResult):
 
@@ -101,32 +102,34 @@ class CustomTextTestResult(unittest.TextTestResult):
                 self.stream.writeln(f"Skip {self.getDescription(test)}: {reason}")
 
         # 将异常信息转换为字符串
-        device_torch = ditorch.framework.split(":")[0]
-        disabled_test_json = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + f"/unsupported_test_cases/{device_torch}_disabled_tests.json"
-        if not os.path.exists(disabled_test_json) or os.path.getsize(disabled_test_json) == 0:
-            with open(disabled_test_json, 'w') as f:
-                json.dump({}, f)
-        with open(disabled_test_json, 'r+') as f:
-            try:
-                # 如果文件中有内容，则加载内容
-                f.seek(0)
-                content = json.load(f)
-            except (json.JSONDecodeError, FileNotFoundError):
-                # 如果文件为空或解析失败，则初始化为空字典
-                content = {}
-            
-            # 更新内容
-            for test, err in self.all_EF_infos:
-                exctype, value, tb = err
-                need_value = str(value).split("\n")[0]
-                # 如果测试还未存在于字典中，添加新内容
-                if str(test) not in content:
-                    content[str(test)] = [f"{exctype.__name__}: {need_value}", ["linux"]]
+        if self.all_EF_infos:
+            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            device_torch = ditorch.framework.split(":")[0]
+            test_failed_json = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + f"/unsupported_test_cases/{device_torch}_failed_tests_record_{current_time}.json"
+            if not os.path.exists(test_failed_json) or os.path.getsize(test_failed_json) == 0:
+                with open(test_failed_json, 'w') as f:
+                    json.dump({}, f)
+            with open(test_failed_json, 'r+') as f:
+                try:
+                    # 如果文件中有内容，则加载内容
+                    f.seek(0)
+                    content = json.load(f)
+                except (json.JSONDecodeError, FileNotFoundError):
+                    # 如果文件为空或解析失败，则初始化为空字典
+                    content = {}
+                
+                # 更新内容
+                for test, err in self.all_EF_infos:
+                    exctype, value, tb = err
+                    need_value = str(value).split("\n")[0]
+                    # 如果测试还未存在于字典中，添加新内容
+                    if str(test) not in content:
+                        content[str(test)] = [f"{exctype.__name__}: {need_value}", ["linux"]]
 
-            # 将文件指针移到开头，写入更新后的内容
-            f.seek(0)
-            json.dump(content, f, indent=4)
-            f.truncate()  # 截断文件以确保文件末尾的多余数据被清除
+                # 将文件指针移到开头，写入更新后的内容
+                f.seek(0)
+                json.dump(content, f, indent=4)
+                f.truncate()  # 截断文件以确保文件末尾的多余数据被清除
 
 
 class CustomTextTestRunner(unittest.TextTestRunner):
